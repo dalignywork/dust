@@ -1,4 +1,6 @@
+import type { ToolProfile } from "@app/lib/api/sandbox/image/types";
 import type { ModelProviderIdType } from "@app/types/assistant/models/types";
+import { assertNever } from "@app/types/shared/utils/assert_never";
 
 export const PROFILE_DIR = "/opt/dust/profile";
 
@@ -6,10 +8,23 @@ export interface WrapCommandOptions {
   timeoutSec?: number;
 }
 
-function getProfileName(_providerId: ModelProviderIdType): string {
-  // Future: return provider-specific profiles
-  // e.g., if (providerId === "openai") return "openai.sh";
-  return "common.sh";
+export function providerToProfile(providerId: ModelProviderIdType): ToolProfile {
+  switch (providerId) {
+    case "openai":
+      return "openai";
+    case "google_ai_studio":
+      return "gemini";
+    case "anthropic":
+    case "mistral":
+    case "deepseek":
+    case "togetherai":
+    case "xai":
+    case "fireworks":
+    case "noop":
+      return "anthropic";
+    default:
+      assertNever(providerId);
+  }
 }
 
 export function wrapCommand(
@@ -17,11 +32,11 @@ export function wrapCommand(
   providerId: ModelProviderIdType,
   opts?: WrapCommandOptions
 ): string {
-  const profile = getProfileName(providerId);
+  const profile = providerToProfile(providerId);
   const timeoutSec = opts?.timeoutSec ?? 60;
   // Escape double quotes and backslashes in command for safe embedding
   const escapedCmd = cmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  return `source ${PROFILE_DIR}/${profile} && shell "${escapedCmd}" ${timeoutSec}`;
+  return `source ${PROFILE_DIR}/${profile}.sh && shell "${escapedCmd}" ${timeoutSec}`;
 }
 
 export function wrapCommandWithCapture(

@@ -1,35 +1,16 @@
 import config from "@app/lib/api/config";
+import { providerToProfile } from "@app/lib/api/sandbox/image/profile";
 import {
   getRegisteredImages,
   getSandboxImageFromRegistry,
 } from "@app/lib/api/sandbox/image/registry";
 import type { SandboxImage } from "@app/lib/api/sandbox/image/sandbox_image";
-import type { ToolEntry, ToolProfile } from "@app/lib/api/sandbox/image/types";
+import type { ToolEntry } from "@app/lib/api/sandbox/image/types";
 import type { Authenticator } from "@app/lib/auth";
 import type { ModelProviderIdType } from "@app/types/assistant/models/types";
 import { isDevelopment } from "@app/types/shared/env";
 import type { Result } from "@app/types/shared/result";
 import { Err, Ok } from "@app/types/shared/result";
-import { assertNever } from "@app/types/shared/utils/assert_never";
-
-function providerToProfile(providerId: ModelProviderIdType): ToolProfile {
-  switch (providerId) {
-    case "openai":
-      return "openai";
-    case "google_ai_studio":
-      return "gemini";
-    case "anthropic":
-    case "mistral":
-    case "deepseek":
-    case "togetherai":
-    case "xai":
-    case "fireworks":
-    case "noop":
-      return "anthropic";
-    default:
-      assertNever(providerId);
-  }
-}
 
 export function getToolsForProvider(
   _auth: Authenticator,
@@ -44,7 +25,15 @@ export function getToolsForProvider(
   const profile = providerToProfile(providerId);
 
   return new Ok(
-    allTools.filter((tool) => !tool.profile || tool.profile === profile)
+    allTools.filter((tool) => {
+      if (!tool.profile) {
+        return true;
+      }
+      if (Array.isArray(tool.profile)) {
+        return tool.profile.includes(profile);
+      }
+      return tool.profile === profile;
+    })
   );
 }
 

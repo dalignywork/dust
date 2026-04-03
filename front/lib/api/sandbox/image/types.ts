@@ -34,7 +34,7 @@ export interface ToolEntry {
   readonly usage?: string;
   readonly returns?: string;
   readonly runtime: ToolRuntime;
-  readonly profile?: ToolProfile;
+  readonly profile?: ToolProfile | readonly ToolProfile[];
 }
 
 // ---------------------------------------------------------------------------
