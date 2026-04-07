@@ -745,6 +745,7 @@ const WhitelistableFeaturesSchema = FlexibleEnumSchema<
   | "email_restricted_sharing"
   | "use_dust_keys"
   | "enable_steering"
+  | "use_vertex_for_claude_models"
 >();
 
 export type WhitelistableFeature = z.infer<typeof WhitelistableFeaturesSchema>;
