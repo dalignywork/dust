@@ -63,6 +63,7 @@ import {
 } from "@app/lib/api/actions/servers/slideshow/metadata";
 import { extractEncryptedContentFromMetadata } from "@app/lib/api/llm/utils";
 import { parseToolArguments } from "@app/lib/api/llm/utils/tool_arguments";
+import { concurrentExecutor } from "@app/lib/utils/async_utils";
 import type {
   AgentFunctionCallContentType,
   AgentReasoningContentType,
@@ -190,7 +191,11 @@ async function toolResultToParam(
     tool_use_id: message.function_call_id,
     content: isString(message.content)
       ? message.content
-      : await Promise.all(message.content.map((c) => userContentToParam(c))),
+      : await concurrentExecutor(
+          message.content,
+          (c) => userContentToParam(c),
+          { concurrency: 10 }
+        ),
   };
 }
 
@@ -207,8 +212,10 @@ async function userMessage(
   message: UserMessageTypeModel,
   { isLast, convertToBase64 }: { isLast: boolean; convertToBase64: boolean }
 ): Promise<MessageParam> {
-  const content = await Promise.all(
-    message.content.map((c) => userContentToParam(c, { convertToBase64 }))
+  const content = await concurrentExecutor(
+    message.content,
+    (c) => userContentToParam(c, { convertToBase64 }),
+    { concurrency: 10 }
   );
 
   // Add cache_control to the last content block if this is the last message.
