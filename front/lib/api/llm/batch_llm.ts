@@ -18,6 +18,7 @@ import { AgentStepContentResource } from "@app/lib/resources/agent_step_content_
 import { ConversationResource } from "@app/lib/resources/conversation_resource";
 import { generateRandomModelSId } from "@app/lib/resources/string_ids_server";
 import { withTransaction } from "@app/lib/utils/sql_utils";
+import logger from "@app/logger/logger";
 import type { AgentContentItemType } from "@app/types/assistant/agent_message_content";
 import {
   type AgentMessageStatus,
@@ -381,6 +382,20 @@ export async function downloadBatchResultFromLlm(
       { runIds: [dustRunId] }
     );
     storedResultInfo.set(conversationId, info);
+  }
+
+  const deleted = await llm.deleteBatch(batchId);
+  if (!deleted) {
+    const metadata = llm.getMetadata();
+    logger.warn(
+      {
+        workspaceId: auth.getNonNullableWorkspace().sId,
+        providerId: metadata.clientId,
+        modelId: metadata.modelId,
+        batchId,
+      },
+      "Failed to delete batch after downloading results"
+    );
   }
 
   return { events, storedResultInfo };
