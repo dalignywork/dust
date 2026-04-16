@@ -89,6 +89,7 @@ const FADE_IN_TRANSITION = "150ms ease-out";
 type SkillPickerState = {
   anchorRect: DOMRect;
   query: string;
+  triggerStart: number;
 };
 
 function getSkillPickerStateFromEditor(editor: Editor): SkillPickerState | null {
@@ -101,7 +102,39 @@ function getSkillPickerStateFromEditor(editor: Editor): SkillPickerState | null 
   return {
     anchorRect: getEditorViewRangeRect(editor.view, trigger.range.from),
     query: trigger.query,
+    triggerStart: trigger.range.from,
   };
+}
+
+function isSameSkillPickerState(
+  currentState: SkillPickerState,
+  nextState: SkillPickerState
+) {
+  return (
+    currentState.triggerStart === nextState.triggerStart &&
+    currentState.query === nextState.query &&
+    currentState.anchorRect.left === nextState.anchorRect.left &&
+    currentState.anchorRect.top === nextState.anchorRect.top &&
+    currentState.anchorRect.width === nextState.anchorRect.width &&
+    currentState.anchorRect.height === nextState.anchorRect.height
+  );
+}
+
+function hasSlashCharacterAtPosition(editor: Editor, position: number) {
+  const docSize = editor.state.doc.content.size;
+
+  if (position < 1 || position > docSize) {
+    return false;
+  }
+
+  return (
+    editor.state.doc.textBetween(
+      position,
+      Math.min(position + 1, docSize + 1),
+      undefined,
+      "\ufffc"
+    ) === "/"
+  );
 }
 
 function getButtonsTransitionStyle(hideButtons: boolean): React.CSSProperties {
@@ -265,6 +298,7 @@ const InputBarContainer = ({
   // Create a ref to hold the editor instance
   const editorRef = useRef<Editor | null>(null);
   const skillPickerDropdownRef = useRef<SlashCommandDropdownRef | null>(null);
+  const dismissedSkillPickerTriggerStartRef = useRef<number | null>(null);
   const pastedAttachmentIdsRef = useRef<Set<string>>(new Set());
 
   const { skills: availableSkills } = useSkills({
@@ -288,20 +322,44 @@ const InputBarContainer = ({
     [availableSkills, selectedSkillIds, skillPickerState?.query]
   );
 
+  const getCurrentSkillPickerTriggerStart = useCallback(() => {
+    const editorInstance = editorRef.current;
+    const trigger = editorInstance
+      ? getInputBarSkillSlashTrigger(editorInstance.state)
+      : null;
+
+    return trigger?.range.from ?? null;
+  }, []);
+
   const handleOpenSkillPicker = useCallback(
     (anchorRect: DOMRect | null, query: string) => {
       if (!anchorRect) {
         return;
       }
 
-      setSkillPickerState({ anchorRect, query });
+      const triggerStart = getCurrentSkillPickerTriggerStart();
+
+      if (
+        triggerStart === null ||
+        dismissedSkillPickerTriggerStartRef.current === triggerStart
+      ) {
+        return;
+      }
+
+      setSkillPickerState({ anchorRect, query, triggerStart });
     },
-    []
+    [getCurrentSkillPickerTriggerStart]
   );
 
   const handleSkillPickerClose = useCallback(() => {
+    const triggerStart = getCurrentSkillPickerTriggerStart();
+
+    if (triggerStart !== null) {
+      dismissedSkillPickerTriggerStartRef.current = triggerStart;
+    }
+
     setSkillPickerState(null);
-  }, []);
+  }, [getCurrentSkillPickerTriggerStart]);
 
   const handleSkillPickerSelection = useCallback(
     (skill: SkillType) => {
@@ -314,6 +372,7 @@ const InputBarContainer = ({
         editorInstance.chain().focus().deleteRange(trigger.range).run();
       }
 
+      dismissedSkillPickerTriggerStartRef.current = null;
       onSkillSelect(skill);
       setSkillPickerState(null);
       queueMicrotask(() => editorRef.current?.commands.focus("end"));
@@ -720,12 +779,39 @@ const InputBarContainer = ({
   // Update the editor ref when the editor is created and listen for updates to the editor.
   useEffect(() => {
     const syncSkillPickerState = () => {
-      if (!editor || !shouldEnableSkillSelection || !editor.isFocused) {
-        setSkillPickerState(null);
-        return;
-      }
+      setSkillPickerState((prev) => {
+        if (!editor || !shouldEnableSkillSelection || !editor.isFocused) {
+          return null;
+        }
 
-      setSkillPickerState(getSkillPickerStateFromEditor(editor));
+        const nextState = getSkillPickerStateFromEditor(editor);
+
+        if (!nextState) {
+          const dismissedTriggerStart =
+            dismissedSkillPickerTriggerStartRef.current;
+
+          if (
+            dismissedTriggerStart !== null &&
+            !hasSlashCharacterAtPosition(editor, dismissedTriggerStart)
+          ) {
+            dismissedSkillPickerTriggerStartRef.current = null;
+          }
+
+          return null;
+        }
+
+        if (
+          dismissedSkillPickerTriggerStartRef.current === nextState.triggerStart
+        ) {
+          return null;
+        }
+
+        dismissedSkillPickerTriggerStartRef.current = null;
+
+        return prev && isSameSkillPickerState(prev, nextState)
+          ? prev
+          : nextState;
+      });
     };
 
     const handleUpdate = () => {
@@ -746,16 +832,19 @@ const InputBarContainer = ({
     };
 
     if (editorRef.current) {
+      editorRef.current.off("selectionUpdate", syncSkillPickerState);
       editorRef.current.off("update", handleUpdate);
     }
 
     if (editor) {
+      editor.on("selectionUpdate", syncSkillPickerState);
       editor.on("update", handleUpdate);
     }
     editorRef.current = editor;
 
     return () => {
       if (editor) {
+        editor.off("selectionUpdate", syncSkillPickerState);
         editor.off("update", handleUpdate);
       }
     };
