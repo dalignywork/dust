@@ -8,7 +8,9 @@ export interface WrapCommandOptions {
   timeoutSec?: number;
 }
 
-export function providerToProfile(providerId: ModelProviderIdType): ToolProfile {
+export function providerToProfile(
+  providerId: ModelProviderIdType
+): ToolProfile {
   switch (providerId) {
     case "openai":
       return "openai";

@@ -20,7 +20,7 @@ describe("wrapCommandWithCapture", () => {
   it("sources the profile and wraps the command", () => {
     const result = wrapCommandWithCapture("echo hello", "abc123", "anthropic");
     expect(result).toContain(
-      'source /opt/dust/profile/common.sh && shell "echo hello" 60'
+      'source /opt/dust/profile/anthropic.sh && shell "echo hello" 60'
     );
   });
 
@@ -74,7 +74,7 @@ describe("wrapCommand", () => {
   it("still works unchanged", () => {
     const result = wrapCommand("echo hi", "anthropic");
     expect(result).toBe(
-      'source /opt/dust/profile/common.sh && shell "echo hi" 60'
+      'source /opt/dust/profile/anthropic.sh && shell "echo hi" 60'
     );
   });
 });

@@ -3,45 +3,24 @@ import { describe, expect, it } from "vitest";
 import { PROFILE_DIR, wrapCommand } from "../../profile";
 
 describe("wrapCommand", () => {
-  it("wraps command with shell function for anthropic provider", () => {
-    const result = wrapCommand("ls -la", "anthropic");
-    expect(result).toBe(
+  it("maps providers to the correct profile wrapper", () => {
+    expect(wrapCommand("ls -la", "anthropic")).toBe(
       `source ${PROFILE_DIR}/anthropic.sh && shell "ls -la" 60`
     );
-  });
-
-  it("wraps command with shell function for openai provider", () => {
-    const result = wrapCommand("pwd", "openai");
-    expect(result).toBe(
+    expect(wrapCommand("pwd", "openai")).toBe(
       `source ${PROFILE_DIR}/openai.sh && shell "pwd" 60`
     );
-  });
-
-  it("wraps command with shell function for google_ai_studio provider", () => {
-    const result = wrapCommand("echo hello", "google_ai_studio");
-    expect(result).toBe(
+    expect(wrapCommand("echo hello", "google_ai_studio")).toBe(
       `source ${PROFILE_DIR}/gemini.sh && shell "echo hello" 60`
     );
   });
 
-  it("passes timeoutSec to shell wrapper", () => {
-    const result = wrapCommand("long-cmd", "anthropic", { timeoutSec: 120 });
+  it("escapes the command and applies custom timeouts", () => {
+    const result = wrapCommand('echo "hello" && echo \\n', "anthropic", {
+      timeoutSec: 120,
+    });
     expect(result).toBe(
-      `source ${PROFILE_DIR}/anthropic.sh && shell "long-cmd" 120`
-    );
-  });
-
-  it("escapes double quotes in command", () => {
-    const result = wrapCommand('echo "hello world"', "anthropic");
-    expect(result).toBe(
-      `source ${PROFILE_DIR}/anthropic.sh && shell "echo \\"hello world\\"" 60`
-    );
-  });
-
-  it("escapes backslashes in command", () => {
-    const result = wrapCommand("echo \\n", "anthropic");
-    expect(result).toBe(
-      `source ${PROFILE_DIR}/anthropic.sh && shell "echo \\\\n" 60`
+      `source ${PROFILE_DIR}/anthropic.sh && shell "echo \\"hello\\" && echo \\\\n" 120`
     );
   });
 });
