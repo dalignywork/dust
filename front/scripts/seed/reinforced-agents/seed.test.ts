@@ -1,6 +1,7 @@
 import type { Authenticator } from "@app/lib/auth";
 import { AgentMessageFeedbackResource } from "@app/lib/resources/agent_message_feedback_resource";
 import { ConversationResource } from "@app/lib/resources/conversation_resource";
+import { SkillResource } from "@app/lib/resources/skill/skill_resource";
 import { SkillSuggestionResource } from "@app/lib/resources/skill_suggestion_resource";
 import type { UserResource } from "@app/lib/resources/user_resource";
 import logger from "@app/logger/logger";
@@ -108,6 +109,26 @@ describe("reinforcement seed script integration test", () => {
 
     const feedbacksWithContent = allFeedbacks.filter((f) => f.content !== null);
     expect(feedbacksWithContent).toHaveLength(4);
+
+    // Verify skills: 3 skills created (Poem Analyser, SearchInfoContactWithSuggestion, BookKeeper)
+    const expectedSkillNames = [
+      "BookKeeper",
+      "Poem Analyser",
+      "SearchInfoContactWithSuggestion",
+    ];
+    const skills = await SkillResource.listByWorkspace(authenticator, {
+      status: "active",
+    });
+    const seededSkills = skills.filter((s) =>
+      expectedSkillNames.includes(s.name)
+    );
+    expect(seededSkills).toHaveLength(3);
+
+    // Verify BookKeeper skill has knowledge reference in instructions
+    const bookKeeper = seededSkills.find((s) => s.name === "BookKeeper");
+    expect(bookKeeper).toBeDefined();
+    expect(bookKeeper!.instructionsHtml).toContain("knowledge-node");
+    expect(bookKeeper!.instructionsHtml).toContain("books.xml");
 
     // Verify skill suggestions: 2 suggestions for SearchInfoContactWithSuggestion
     const skillSuggestions =
