@@ -23,7 +23,6 @@ import config from "@app/lib/api/config";
 import { getDocumentIcon } from "@app/lib/content_nodes";
 import { removeNulls } from "@app/types/shared/utils/general";
 import type { LightWorkspaceType } from "@app/types/user";
-import { useCallback, useState } from "react";
 import {
   Chip,
   CodeBlock,
@@ -36,6 +35,7 @@ import {
   Tooltip,
 } from "@dust-tt/sparkle";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { useCallback, useState } from "react";
 
 interface ThinkingBlockProps {
   resource: ThinkingOutputType;

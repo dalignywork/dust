@@ -28,10 +28,10 @@ import { MCPListToolsActionDetails } from "@app/components/actions/mcp/details/M
 import { MCPRunAgentActionDetails } from "@app/components/actions/mcp/details/MCPRunAgentActionDetails";
 import { MCPSandboxActionDetails } from "@app/components/actions/mcp/details/MCPSandboxActionDetails";
 import { MCPSkillEnableActionDetails } from "@app/components/actions/mcp/details/MCPSkillEnableActionDetails";
-import { ConversationSidePanelContext } from "@app/components/assistant/conversation/ConversationSidePanelContext";
 import { MCPTablesQueryActionDetails } from "@app/components/actions/mcp/details/MCPTablesQueryActionDetails";
 import { SearchResultDetails } from "@app/components/actions/mcp/details/MCPToolOutputDetails";
 import { MCPToolsetsEnableActionDetails } from "@app/components/actions/mcp/details/MCPToolsetsEnableActionDetails";
+import { ConversationSidePanelContext } from "@app/components/assistant/conversation/ConversationSidePanelContext";
 import type {
   ActionDetailsDisplayContext,
   ToolExecutionDetailsProps,
