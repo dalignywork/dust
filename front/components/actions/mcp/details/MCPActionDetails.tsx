@@ -28,6 +28,7 @@ import { MCPListToolsActionDetails } from "@app/components/actions/mcp/details/M
 import { MCPRunAgentActionDetails } from "@app/components/actions/mcp/details/MCPRunAgentActionDetails";
 import { MCPSandboxActionDetails } from "@app/components/actions/mcp/details/MCPSandboxActionDetails";
 import { MCPSkillEnableActionDetails } from "@app/components/actions/mcp/details/MCPSkillEnableActionDetails";
+import { ConversationSidePanelContext } from "@app/components/assistant/conversation/ConversationSidePanelContext";
 import { MCPTablesQueryActionDetails } from "@app/components/actions/mcp/details/MCPTablesQueryActionDetails";
 import { SearchResultDetails } from "@app/components/actions/mcp/details/MCPToolOutputDetails";
 import { MCPToolsetsEnableActionDetails } from "@app/components/actions/mcp/details/MCPToolsetsEnableActionDetails";
@@ -36,6 +37,10 @@ import type {
   ToolExecutionDetailsProps,
 } from "@app/components/actions/mcp/details/types";
 import { InternalActionIcons } from "@app/components/resources/resources_icons";
+import {
+  FilePreviewSheet,
+  type MinimalFileForPreview,
+} from "@app/components/spaces/FilePreviewSheet";
 import { ENABLE_SKILL_TOOL_NAME } from "@app/lib/actions/constants";
 import {
   DATA_WAREHOUSES_DESCRIBE_TABLES_TOOL_NAME,
@@ -91,7 +96,10 @@ import {
 import config from "@app/lib/api/config";
 import { isValidJSON } from "@app/lib/utils/json";
 import type { AgentMCPActionWithOutputType } from "@app/types/actions";
-import { isSupportedImageContentType } from "@app/types/files";
+import {
+  isInteractiveContentType,
+  isSupportedImageContentType,
+} from "@app/types/files";
 import { asDisplayName } from "@app/types/shared/utils/string_utils";
 import type { LightWorkspaceType } from "@app/types/user";
 import {
@@ -103,7 +111,7 @@ import {
   MagnifyingGlassIcon,
   Markdown,
 } from "@dust-tt/sparkle";
-import { useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 
 export interface MCPActionDetailsProps {
   action: AgentMCPActionWithOutputType;
@@ -404,6 +412,31 @@ export function GenericActionDetails({
   action,
   displayContext,
 }: MCPActionDetailsProps) {
+  const [previewFile, setPreviewFile] = useState<MinimalFileForPreview | null>(
+    null
+  );
+  const [showPreviewSheet, setShowPreviewSheet] = useState(false);
+  const sidePanel = useContext(ConversationSidePanelContext);
+
+  const openFile = useCallback(
+    (file: { fileId: string; title: string; contentType: string }) => {
+      if (isInteractiveContentType(file.contentType) && sidePanel) {
+        sidePanel.openPanel({
+          type: "interactive_content",
+          fileId: file.fileId,
+        });
+      } else {
+        setPreviewFile({
+          sId: file.fileId,
+          fileName: file.title,
+          contentType: file.contentType,
+        });
+        setShowPreviewSheet(true);
+      }
+    },
+    [sidePanel]
+  );
+
   const inputs =
     Object.keys(action.params).length > 0
       ? JSON.stringify(action.params, undefined, 2)
@@ -461,7 +494,8 @@ export function GenericActionDetails({
                       return (
                         <div
                           key={file.fileId}
-                          className="h-24 w-24 flex-shrink-0"
+                          className="h-24 w-24 flex-shrink-0 cursor-pointer"
+                          onClick={() => openFile(file)}
                         >
                           <img
                             className="h-full w-full rounded-xl object-cover"
@@ -473,13 +507,12 @@ export function GenericActionDetails({
                     }
                     return (
                       <div key={file.fileId}>
-                        <a
-                          href={`${config.getApiBaseUrl()}/api/w/${owner.sId}/files/${file.fileId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          className="text-sm text-action-500 hover:text-action-400 dark:text-action-500-dark dark:hover:text-action-400-dark hover:underline"
+                          onClick={() => openFile(file)}
                         >
                           {file.title}
-                        </a>
+                        </button>
                       </div>
                     );
                   })}
@@ -488,6 +521,12 @@ export function GenericActionDetails({
           )}
         </div>
       )}
+      <FilePreviewSheet
+        owner={owner}
+        file={previewFile}
+        isOpen={showPreviewSheet}
+        onOpenChange={setShowPreviewSheet}
+      />
     </ActionDetailsWrapper>
   );
 }

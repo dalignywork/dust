@@ -2,6 +2,10 @@ import { ActionDetailsWrapper } from "@app/components/actions/ActionDetailsWrapp
 import type { ActionDetailsDisplayContext } from "@app/components/actions/mcp/details/types";
 import { AttachmentCitation } from "@app/components/assistant/conversation/attachment/AttachmentCitation";
 import { toolGeneratedFileToAttachmentCitation } from "@app/components/assistant/conversation/attachment/utils";
+import {
+  FilePreviewSheet,
+  type MinimalFileForPreview,
+} from "@app/components/spaces/FilePreviewSheet";
 import type {
   SqlQueryOutputType,
   ThinkingOutputType,
@@ -19,6 +23,7 @@ import config from "@app/lib/api/config";
 import { getDocumentIcon } from "@app/lib/content_nodes";
 import { removeNulls } from "@app/types/shared/utils/general";
 import type { LightWorkspaceType } from "@app/types/user";
+import { useCallback, useState } from "react";
 import {
   Chip,
   CodeBlock,
@@ -87,16 +92,39 @@ export function ToolGeneratedFileDetails({
   resource,
   owner,
 }: ToolGeneratedFileDetailsProps) {
+  const [previewFile, setPreviewFile] = useState<MinimalFileForPreview | null>(
+    null
+  );
+  const [showPreviewSheet, setShowPreviewSheet] = useState(false);
+
+  const handlePreview = useCallback(() => {
+    setPreviewFile({
+      sId: resource.fileId,
+      fileName: resource.title,
+      contentType: resource.contentType,
+    });
+    setShowPreviewSheet(true);
+  }, [resource.fileId, resource.title, resource.contentType]);
+
   const file = {
     ...resource,
     sourceUrl: `${config.getApiBaseUrl()}/api/w/${owner.sId}/files/${resource.fileId}`,
   };
   return (
-    <AttachmentCitation
-      attachmentCitation={toolGeneratedFileToAttachmentCitation(file)}
-      owner={owner}
-      conversationId={null}
-    />
+    <>
+      <AttachmentCitation
+        attachmentCitation={toolGeneratedFileToAttachmentCitation(file)}
+        owner={owner}
+        conversationId={null}
+        onPreview={handlePreview}
+      />
+      <FilePreviewSheet
+        owner={owner}
+        file={previewFile}
+        isOpen={showPreviewSheet}
+        onOpenChange={setShowPreviewSheet}
+      />
+    </>
   );
 }
 

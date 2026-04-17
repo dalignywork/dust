@@ -30,12 +30,14 @@ interface AttachmentCitationProps {
   attachmentCitation: AttachmentCitation;
   conversationId?: string | null;
   compact?: boolean;
+  onPreview?: () => void;
 }
 
 export function AttachmentCitation({
   owner,
   attachmentCitation,
   compact,
+  onPreview,
 }: AttachmentCitationProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const sidePanel = useContext(ConversationSidePanelContext);
@@ -95,9 +97,16 @@ export function AttachmentCitation({
         }
       : isImage
         ? {} // ImagePreview handles click with its own zoom dialog
-        : {
-            href: attachmentCitation.sourceUrl ?? undefined,
-          };
+        : onPreview
+          ? {
+              onClick: (e: React.MouseEvent<HTMLDivElement>) => {
+                e.preventDefault();
+                onPreview();
+              },
+            }
+          : {
+              href: attachmentCitation.sourceUrl ?? undefined,
+            };
 
   return (
     <>
