@@ -31,11 +31,11 @@ import { MCPSkillEnableActionDetails } from "@app/components/actions/mcp/details
 import { MCPTablesQueryActionDetails } from "@app/components/actions/mcp/details/MCPTablesQueryActionDetails";
 import { SearchResultDetails } from "@app/components/actions/mcp/details/MCPToolOutputDetails";
 import { MCPToolsetsEnableActionDetails } from "@app/components/actions/mcp/details/MCPToolsetsEnableActionDetails";
-import { ConversationSidePanelContext } from "@app/components/assistant/conversation/ConversationSidePanelContext";
 import type {
   ActionDetailsDisplayContext,
   ToolExecutionDetailsProps,
 } from "@app/components/actions/mcp/details/types";
+import { ConversationSidePanelContext } from "@app/components/assistant/conversation/ConversationSidePanelContext";
 import { InternalActionIcons } from "@app/components/resources/resources_icons";
 import {
   FilePreviewSheet,
