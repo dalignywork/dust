@@ -96,6 +96,7 @@ describe("batchRenderMessages", () => {
       );
 
       expect(result.isOk()).toBe(true);
+
       if (result.isOk()) {
         const renderedMessages = result.value;
         expect(renderedMessages.length).toBeGreaterThan(0);
