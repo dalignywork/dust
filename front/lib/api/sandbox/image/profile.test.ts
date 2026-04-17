@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-
 import {
   buildWaitAndCollectCommand,
   wrapCommand,
   wrapCommandWithCapture,
 } from "./profile";
+import { getSandboxImageFromRegistry } from "./registry";
 
 describe("wrapCommandWithCapture", () => {
   it("includes tee redirect to output file", () => {
@@ -76,5 +76,26 @@ describe("wrapCommand", () => {
     expect(result).toBe(
       'source /opt/dust/profile/anthropic.sh && shell "echo hi" 60'
     );
+  });
+
+  it("does not advertise edit_file for openai", () => {
+    const imageResult = getSandboxImageFromRegistry({ name: "dust-base" });
+    expect(imageResult.isOk()).toBe(true);
+
+    if (imageResult.isErr()) {
+      return;
+    }
+
+    const openaiTools = imageResult.value.tools.filter((tool) => {
+      if (!tool.profile) {
+        return true;
+      }
+
+      return Array.isArray(tool.profile)
+        ? tool.profile.includes("openai")
+        : tool.profile === "openai";
+    });
+
+    expect(openaiTools.map((tool) => tool.name)).not.toContain("edit_file");
   });
 });
