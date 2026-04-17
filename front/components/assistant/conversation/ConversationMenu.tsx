@@ -9,6 +9,7 @@ import {
   useJoinConversation,
 } from "@app/hooks/conversations";
 import { useDeleteConversation } from "@app/hooks/useDeleteConversation";
+import { useMoveConversationOutOfProject } from "@app/hooks/useMoveConversationOutOfProject";
 import { useMoveConversationToProject } from "@app/hooks/useMoveConversationToProject";
 import { useSendNotification } from "@app/hooks/useNotification";
 import { useURLSheet } from "@app/hooks/useURLSheet";
@@ -37,6 +38,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuSub,
@@ -223,6 +225,10 @@ export function ConversationMenu({
   });
 
   const moveConversationToProject = useMoveConversationToProject(owner);
+  const moveConversationOutOfProject = useMoveConversationOutOfProject(
+    owner,
+    activeConversationId
+  );
 
   const joinConversation = useJoinConversation({
     ownerId: owner.sId,
@@ -350,11 +356,31 @@ export function ConversationMenu({
             <DropdownMenuSub>
               <DropdownMenuSubTrigger
                 icon={ArrowRightIcon}
-                label="Move to project"
+                label={
+                  conversation && isProjectConversation(conversation)
+                    ? "Move to..."
+                    : "Move to project"
+                }
                 disabled={!projects.length}
               />
               <DropdownMenuPortal>
-                <DropdownMenuSubContent>
+                <DropdownMenuSubContent
+                  collisionPadding={16}
+                  className="max-w-60"
+                >
+                  {conversation && isProjectConversation(conversation) && (
+                    <>
+                      <DropdownMenuItem
+                        icon={XMarkIcon}
+                        label="Personal conversations"
+                        onClick={async () =>
+                          moveConversationOutOfProject(conversation)
+                        }
+                      />
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel label="Projects" />
+                    </>
+                  )}
                   {projects
                     .filter((project) => project.sId !== conversation?.spaceId)
                     .map((project) => (
@@ -362,6 +388,7 @@ export function ConversationMenu({
                         key={project.sId}
                         icon={getSpaceIcon(project)}
                         label={project.name}
+                        truncateText
                         onClick={async () =>
                           conversation
                             ? moveConversationToProject(conversation, project)
