@@ -29,18 +29,16 @@ import { MCPRunAgentActionDetails } from "@app/components/actions/mcp/details/MC
 import { MCPSandboxActionDetails } from "@app/components/actions/mcp/details/MCPSandboxActionDetails";
 import { MCPSkillEnableActionDetails } from "@app/components/actions/mcp/details/MCPSkillEnableActionDetails";
 import { MCPTablesQueryActionDetails } from "@app/components/actions/mcp/details/MCPTablesQueryActionDetails";
-import { SearchResultDetails } from "@app/components/actions/mcp/details/MCPToolOutputDetails";
+import {
+  SearchResultDetails,
+  ToolGeneratedFileDetails,
+} from "@app/components/actions/mcp/details/MCPToolOutputDetails";
 import { MCPToolsetsEnableActionDetails } from "@app/components/actions/mcp/details/MCPToolsetsEnableActionDetails";
 import type {
   ActionDetailsDisplayContext,
   ToolExecutionDetailsProps,
 } from "@app/components/actions/mcp/details/types";
-import { ConversationSidePanelContext } from "@app/components/assistant/conversation/ConversationSidePanelContext";
 import { InternalActionIcons } from "@app/components/resources/resources_icons";
-import {
-  FilePreviewSheet,
-  type MinimalFileForPreview,
-} from "@app/components/spaces/FilePreviewSheet";
 import { ENABLE_SKILL_TOOL_NAME } from "@app/lib/actions/constants";
 import {
   DATA_WAREHOUSES_DESCRIBE_TABLES_TOOL_NAME,
@@ -93,13 +91,8 @@ import {
   GET_DATABASE_SCHEMA_TOOL_NAME,
   TABLE_QUERY_V2_SERVER_NAME,
 } from "@app/lib/api/actions/servers/query_tables_v2/metadata";
-import config from "@app/lib/api/config";
 import { isValidJSON } from "@app/lib/utils/json";
 import type { AgentMCPActionWithOutputType } from "@app/types/actions";
-import {
-  isInteractiveContentType,
-  isSupportedImageContentType,
-} from "@app/types/files";
 import { asDisplayName } from "@app/types/shared/utils/string_utils";
 import type { LightWorkspaceType } from "@app/types/user";
 import {
@@ -111,7 +104,7 @@ import {
   MagnifyingGlassIcon,
   Markdown,
 } from "@dust-tt/sparkle";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export interface MCPActionDetailsProps {
   action: AgentMCPActionWithOutputType;
@@ -412,31 +405,6 @@ export function GenericActionDetails({
   action,
   displayContext,
 }: MCPActionDetailsProps) {
-  const [previewFile, setPreviewFile] = useState<MinimalFileForPreview | null>(
-    null
-  );
-  const [showPreviewSheet, setShowPreviewSheet] = useState(false);
-  const sidePanel = useContext(ConversationSidePanelContext);
-
-  const openFile = useCallback(
-    (file: { fileId: string; title: string; contentType: string }) => {
-      if (isInteractiveContentType(file.contentType) && sidePanel) {
-        sidePanel.openPanel({
-          type: "interactive_content",
-          fileId: file.fileId,
-        });
-      } else {
-        setPreviewFile({
-          sId: file.fileId,
-          fileName: file.title,
-          contentType: file.contentType,
-        });
-        setShowPreviewSheet(true);
-      }
-    },
-    [sidePanel]
-  );
-
   const inputs =
     Object.keys(action.params).length > 0
       ? JSON.stringify(action.params, undefined, 2)
@@ -489,44 +457,18 @@ export function GenericActionDetails({
               <div className="flex flex-wrap gap-2">
                 {action.generatedFiles
                   .filter((f) => !f.hidden)
-                  .map((file) => {
-                    if (isSupportedImageContentType(file.contentType)) {
-                      return (
-                        <div
-                          key={file.fileId}
-                          className="h-24 w-24 flex-shrink-0 cursor-pointer"
-                          onClick={() => openFile(file)}
-                        >
-                          <img
-                            className="h-full w-full rounded-xl object-cover"
-                            src={`${config.getApiBaseUrl()}/api/w/${owner.sId}/files/${file.fileId}`}
-                            alt={`${file.title}`}
-                          />
-                        </div>
-                      );
-                    }
-                    return (
-                      <div key={file.fileId}>
-                        <button
-                          className="text-sm text-action-500 hover:text-action-400 dark:text-action-500-dark dark:hover:text-action-400-dark hover:underline"
-                          onClick={() => openFile(file)}
-                        >
-                          {file.title}
-                        </button>
-                      </div>
-                    );
-                  })}
+                  .map((file) => (
+                    <ToolGeneratedFileDetails
+                      key={file.fileId}
+                      resource={file}
+                      owner={owner}
+                    />
+                  ))}
               </div>
             </>
           )}
         </div>
       )}
-      <FilePreviewSheet
-        owner={owner}
-        file={previewFile}
-        isOpen={showPreviewSheet}
-        onOpenChange={setShowPreviewSheet}
-      />
     </ActionDetailsWrapper>
   );
 }
